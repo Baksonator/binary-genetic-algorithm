@@ -2,12 +2,12 @@ import random
 import sys
 import math
 import matplotlib.pyplot as plt
-import numpy as np
+
 
 max_iter = 500
 mut_rate = 0.1
-pop_vel = 150
-npop_vel = 150
+pop_vel = 20
+npop_vel = 20
 num_runs = 5
 convergence_number = 10
 outfile = sys.stdout
@@ -89,20 +89,36 @@ def ukrsti(h1, h2):
     return h3, h4
 
 
-def draw_stats(all_best_lists, all_average_lists):
+def draw_stats(all_best_lists, all_average_lists, generations_list, pop_size):
     c = 0
     colors = ['green', 'blue', 'yellow', 'red', 'orange']
-    for best_list, average_list in zip(all_best_lists, all_average_lists):
-        x_number_values = best_list
-        y_number_values = list(range(len(best_list)))
-        p = plt.plot(x_number_values, y_number_values, linewidth=3, color=colors[c])
-        plt.title('Best list', fontsize=19)
+    for best_list in all_best_lists:
+        x_number_values = list(range(generations_list[c]))
+        y_number_values = best_list
+        plt.plot(x_number_values, y_number_values, linewidth=3, color=colors[c], label=str(c + 1))
+        plt.title('Best solution', fontsize=19)
         plt.xlabel('Generations', fontsize=10)
         plt.ylabel('Function value', fontsize=10)
         plt.tick_params(axis='both', labelsize=9)
-        # plt.show()
-        file_name = 'best' + str(c) + '.pdf'
-        # p.savefig(file_name)
+        c += 1
+    plt.legend(loc='upper right')
+    filename = 'best' + str(pop_size) + '.pdf'
+    plt.savefig(filename)
+
+    plt.clf()
+    c = 0
+    for average_list in all_average_lists:
+        x_number_values = list(range(generations_list[c]))
+        y_number_values = average_list
+        plt.plot(x_number_values, y_number_values, linewidth=3, color=colors[c], label=str(c + 1))
+        plt.title('Average cost function value', fontsize=19)
+        plt.xlabel('Generations', fontsize=10)
+        plt.ylabel('Function value', fontsize=10)
+        plt.tick_params(axis='both', labelsize=9)
+        c += 1
+    plt.legend(loc='upper right')
+    filename = 'average' + str(pop_size) + '.pdf'
+    plt.savefig(filename)
 
 
 def genetski():
@@ -112,6 +128,7 @@ def genetski():
     best_ever_f = None
     all_best_lists = []
     all_average_lists = []
+    generations_list = []
     cost_function = trosak
     for k in range(num_runs):
         print('Starting: GA', k, ', population size:', pop_vel, ', maximum_iterations:', max_iter, ', mutation_rate:',
@@ -157,6 +174,7 @@ def genetski():
                     break
         all_best_lists.append(best_list)
         all_average_lists.append(average_list)
+        generations_list.append(t)
         s_trosak += best_f
         s_iteracija += t
         if best_ever_f is None or best_ever_f > best_f:
@@ -170,7 +188,7 @@ def genetski():
     print('Srednji broj iteracija: %.2f' % s_iteracija, file=outfile)
     print('Najbolje resenje: %s' % best_ever_sol, file=outfile)
     print('Najbolji trosak: %.2f' % best_ever_f, file=outfile)
-    # draw_stats(all_best_lists, all_average_lists)
+    draw_stats(all_best_lists, all_average_lists, generations_list, pop_vel)
 
 
 genetski()
