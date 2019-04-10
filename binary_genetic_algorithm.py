@@ -4,54 +4,79 @@ import math
 import matplotlib.pyplot as plt
 
 
-max_iter = 500
-mut_rate = 0.1
-pop_vel = 20
-npop_vel = 20
-num_runs = 5
-convergence_number = 10
-outfile = sys.stdout
+# Parameter functions and values
 
 
-def trosak(hromozom):
-    # broj razlicitih bitova
-    x, y = decode_chromosome(hromozom)
+def cost(chromosome):
+    x, y = decode_chromosome_function(chromosome)
     return math.fabs(mccormick_function(x, y) + 1.913)
 
 
-def mutiraj(hromozom, verovatnoca):
-    # inverzija
-    if random.random() <= verovatnoca:
-        first = random.randrange(1, len(hromozom) - 1)
-        second = random.randrange(1, len(hromozom) - 1)
-        if first < second:
-            hromozom[first: second + 1] = reversed(hromozom[first: second + 1])
-        else:
-            hromozom[second: first + 1] = reversed(hromozom[second: first + 1])
-    return hromozom
+def tournament_selection(cost_f, population, size):
+    z = []
+    while len(z) < size:
+        z.append(random.choice(population))
+    best = None
+    best_f = None
+    for e in z:
+        ff = cost_f(e)
+        if best is None or ff < best_f:
+            best_f = ff
+            best = e
+    return best
 
 
 def code_chromosome(x, y):
-    # 13 bitova po parametru
-    x = int(x * 1000)
-    y = int(y * 1000)
-    x += 1500
-    y += 3000
-    hromozom_x = list(bin(x)[2:].zfill(13))
-    hromozom_y = list(bin(y)[2:].zfill(13))
-    return hromozom_x + hromozom_y
+    x = int(x * math.pow(10, precision))
+    y = int(y * math.pow(10, precision))
+    x = int(x + 1.5 * math.pow(10, precision))
+    y = int(y + 3 * math.pow(10, precision))
+    chromosome_x = list(bin(x)[2:].zfill(num_bits_x))
+    chromosome_y = list(bin(y)[2:].zfill(num_bits_y))
+    return chromosome_x + chromosome_y
 
 
 def decode_chromosome(chromosome):
-    hromozom_x = chromosome[:13]
-    hromozom_y = chromosome[13:]
-    x = int(''.join(map(str, hromozom_x)), 2)
-    y = int(''.join(map(str, hromozom_y)), 2)
-    x -= 1500
-    y -= 3000
-    x /= 1000
-    y /= 1000
+    chromosome_x = chromosome[:num_bits_x]
+    chromosome_y = chromosome[num_bits_x:]
+    x = int(''.join(map(str, chromosome_x)), 2)
+    y = int(''.join(map(str, chromosome_y)), 2)
+    x -= 1.5 * math.pow(10, precision)
+    y -= 3 * math.pow(10, precision)
+    x /= math.pow(10, precision)
+    y /= math.pow(10, precision)
     return x, y
+
+
+max_iter = 500
+mut_rate = 0.2
+population_size = 150
+next_population_size = 150
+num_runs = 5
+convergence_number = 100        # algorithms stops if best chromosome doesn't change for this number of generations
+precision = 3
+num_bits_x = int(math.ceil(math.log2(5.5 * math.pow(10, precision))))
+num_bits_y = int(math.ceil(math.log2(7 * math.pow(10, precision))))
+crossover_selection = tournament_selection
+cost_function = cost
+code_chromosome_function = code_chromosome
+decode_chromosome_function = decode_chromosome
+outfile = sys.stdout
+
+
+########################################################################
+# Algorithm and fixed functions
+
+
+def mutate(chromosme, probability):
+    if random.random() <= probability:
+        first = random.randrange(1, len(chromosme) - 1)
+        second = random.randrange(1, len(chromosme) - 1)
+        if first < second:
+            chromosme[first: second + 1] = reversed(chromosme[first: second + 1])
+        else:
+            chromosme[second: first + 1] = reversed(chromosme[second: first + 1])
+    return chromosme
 
 
 def mccormick_function(x, y):
@@ -59,7 +84,7 @@ def mccormick_function(x, y):
 
 
 def valid_chromosome(chromosome):
-    x, y = decode_chromosome(chromosome)
+    x, y = decode_chromosome_function(chromosome)
     if not (-1.5 <= x <= 4):
         return False
     if not (-3 <= y <= 4):
@@ -67,26 +92,11 @@ def valid_chromosome(chromosome):
     return True
 
 
-# turnirska selekcija - argumenti su funkcija troška, rešenje, populacija i veličina turnira
-def turnir(fja, pop, vel):
-    z = []
-    while len(z) < vel:
-        z.append(random.choice(pop))
-    najbolji = None
-    najbolji_f = None
-    for e in z:
-        ff = fja(e)
-        if najbolji is None or ff < najbolji_f:
-            najbolji_f = ff
-            najbolji = e
-    return najbolji
-
-
-def ukrsti(h1, h2):
-    r = random.randrange(1, len(h1) - 1)
-    h3 = h1[:r] + h2[r:]
-    h4 = h2[:r] + h1[r:]
-    return h3, h4
+def single_point_crossover(c1, c2):
+    r = random.randrange(1, len(c1) - 1)
+    c3 = c1[:r] + c2[r:]
+    c4 = c2[:r] + c1[r:]
+    return c3, c4
 
 
 def draw_stats(all_best_lists, all_average_lists, generations_list, pop_size):
@@ -95,7 +105,7 @@ def draw_stats(all_best_lists, all_average_lists, generations_list, pop_size):
     for best_list in all_best_lists:
         x_number_values = list(range(generations_list[c]))
         y_number_values = best_list
-        plt.plot(x_number_values, y_number_values, linewidth=3, color=colors[c], label=str(c + 1))
+        plt.plot(x_number_values, y_number_values, color=colors[c], label=str(c + 1))
         plt.title('Best solution', fontsize=19)
         plt.xlabel('Generations', fontsize=10)
         plt.ylabel('Function value', fontsize=10)
@@ -110,7 +120,7 @@ def draw_stats(all_best_lists, all_average_lists, generations_list, pop_size):
     for average_list in all_average_lists:
         x_number_values = list(range(generations_list[c]))
         y_number_values = average_list
-        plt.plot(x_number_values, y_number_values, linewidth=3, color=colors[c], label=str(c + 1))
+        plt.plot(x_number_values, y_number_values, color=colors[c], label=str(c + 1))
         plt.title('Average cost function value', fontsize=19)
         plt.xlabel('Generations', fontsize=10)
         plt.ylabel('Function value', fontsize=10)
@@ -122,49 +132,48 @@ def draw_stats(all_best_lists, all_average_lists, generations_list, pop_size):
 
 
 def genetski():
-    s_trosak = 0
-    s_iteracija = 0
+    sum_cost = 0
+    sum_iterations = 0
     best_ever_sol = None
     best_ever_f = None
     all_best_lists = []
     all_average_lists = []
     generations_list = []
-    cost_function = trosak
     for k in range(num_runs):
-        print('Starting: GA', k, ', population size:', pop_vel, ', maximum_iterations:', max_iter, ', mutation_rate:',
-              mut_rate, ', number of runs:', num_runs, file=outfile)
+        print('Starting: GA', k + 1, ', population size:', population_size, ', maximum_iterations:', max_iter,
+              ', mutation_rate:', mut_rate, ', number of runs:', num_runs, file=outfile)
         best_list = []
         average_list = []
         best = None
         best_f = None
         current_same = 0
         t = 0
-        tuple_pop = zip([round(random.uniform(-1.5, 4), 3) for _ in range(pop_vel)],
-                        [round(random.uniform(-3, 4), 3) for _ in range(pop_vel)])
-        pop = []
+        tuple_pop = zip([round(random.uniform(-1.5, 4), 3) for _ in range(population_size)],
+                        [round(random.uniform(-3, 4), 3) for _ in range(population_size)])
+        population = []
         for x, y in tuple_pop:
-            pop.append(code_chromosome(x, y))
+            population.append(code_chromosome_function(x, y))
         while best_f != 0 and t < max_iter:
-            n_pop = pop[:]
-            while len(n_pop) < pop_vel + npop_vel:
-                h1 = turnir(cost_function, pop, 3)
-                h2 = turnir(cost_function, pop, 3)
-                h3, h4 = ukrsti(h1, h2)
-                mutiraj(h3, mut_rate)
-                mutiraj(h4, mut_rate)
-                if valid_chromosome(h3):
-                    n_pop.append(h3)
-                if valid_chromosome(h4):
-                    n_pop.append(h4)
-            pop = sorted(n_pop, key=lambda l: cost_function(l))[:pop_vel]
-            f = cost_function(pop[0])
-            prosek_f = sum(map(cost_function, pop))
-            average_list.append(prosek_f)
-            print('Iteracija:', t, ', najbolje resenje:', f, ', prosecna prilagodjenost:', prosek_f, file=outfile)
+            n_population = population[:]
+            while len(n_population) < population_size + next_population_size:
+                c1 = crossover_selection(cost_function, population, 3)
+                c2 = crossover_selection(cost_function, population, 3)
+                c3, c4 = single_point_crossover(c1, c2)
+                mutate(c3, mut_rate)
+                mutate(c4, mut_rate)
+                if valid_chromosome(c3):
+                    n_population.append(c3)
+                if valid_chromosome(c4):
+                    n_population.append(c4)
+            population = sorted(n_population, key=lambda l: cost_function(l))[:population_size]
+            f = cost_function(population[0])
+            average_f = sum(map(cost_function, population))
+            average_list.append(average_f)
+            print('Iteration:', t + 1, ', best solution:', f, ', average cost:', average_f, file=outfile)
             t += 1
             if best_f is None or best_f > f:
                 best_f = f
-                best = pop[0]
+                best = population[0]
                 current_same = 0
                 best_list.append(best_f)
             else:
@@ -175,20 +184,21 @@ def genetski():
         all_best_lists.append(best_list)
         all_average_lists.append(average_list)
         generations_list.append(t)
-        s_trosak += best_f
-        s_iteracija += t
+        sum_cost += best_f
+        sum_iterations += t
         if best_ever_f is None or best_ever_f > best_f:
             best_ever_f = best_f
             best_ever_sol = best
-        print('Najbolje resenje u pokretanju', k, ', sastav najboljeg hromozoma', best, ', najbolji trosak',
-              best_f, ', dekodovani najbolji', decode_chromosome(best), file=outfile)
-    s_trosak /= num_runs
-    s_iteracija /= num_runs
-    print('Srednji trosak: %.2f' % s_trosak, file=outfile)
-    print('Srednji broj iteracija: %.2f' % s_iteracija, file=outfile)
-    print('Najbolje resenje: %s' % best_ever_sol, file=outfile)
-    print('Najbolji trosak: %.2f' % best_ever_f, file=outfile)
-    draw_stats(all_best_lists, all_average_lists, generations_list, pop_vel)
+        print('Best solution in run', k + 1, ', composition of best chromosome', best, ', best cost',
+              best_f, ', decoded best', decode_chromosome_function(best), file=outfile)
+    sum_cost /= num_runs
+    sum_iterations /= num_runs
+    print('Average cost: %.2f' % sum_cost, file=outfile)
+    print('Average number of iterations: %.2f' % sum_iterations, file=outfile)
+    print('Best solution: %s' % best_ever_sol, file=outfile)
+    print('Best cost: %.2f' % best_ever_f, file=outfile)
+    print('Decoded best solution: %f, %f' % decode_chromosome(best_ever_sol), file=outfile)
+    draw_stats(all_best_lists, all_average_lists, generations_list, population_size)
 
 
 genetski()
