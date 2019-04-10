@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 def cost(chromosome):
     x, y = decode_chromosome_function(chromosome)
-    return math.fabs(mccormick_function(x, y) + 1.913)
+    return mccormick_function(x, y)
 
 
 def tournament_selection(cost_f, population, size):
@@ -68,15 +68,15 @@ outfile = sys.stdout
 # Algorithm and fixed functions
 
 
-def mutate(chromosme, probability):
+def mutate(chromosome, probability):
     if random.random() <= probability:
-        first = random.randrange(1, len(chromosme) - 1)
-        second = random.randrange(1, len(chromosme) - 1)
+        first = random.randrange(1, len(chromosome) - 1)
+        second = random.randrange(1, len(chromosome) - 1)
         if first < second:
-            chromosme[first: second + 1] = reversed(chromosme[first: second + 1])
+            chromosome[first: second + 1] = reversed(chromosome[first: second + 1])
         else:
-            chromosme[second: first + 1] = reversed(chromosme[second: first + 1])
-    return chromosme
+            chromosome[second: first + 1] = reversed(chromosome[second: first + 1])
+    return chromosome
 
 
 def mccormick_function(x, y):
@@ -148,12 +148,12 @@ def genetski():
         best_f = None
         current_same = 0
         t = 0
-        tuple_pop = zip([round(random.uniform(-1.5, 4), 3) for _ in range(population_size)],
-                        [round(random.uniform(-3, 4), 3) for _ in range(population_size)])
+        tuple_pop = zip([round(random.uniform(-1.5, 4), precision) for _ in range(population_size)],
+                        [round(random.uniform(-3, 4), precision) for _ in range(population_size)])
         population = []
         for x, y in tuple_pop:
             population.append(code_chromosome_function(x, y))
-        while best_f != 0 and t < max_iter:
+        while t < max_iter:
             n_population = population[:]
             while len(n_population) < population_size + next_population_size:
                 c1 = crossover_selection(cost_function, population, 3)
@@ -167,7 +167,7 @@ def genetski():
                     n_population.append(c4)
             population = sorted(n_population, key=lambda l: cost_function(l))[:population_size]
             f = cost_function(population[0])
-            average_f = sum(map(cost_function, population))
+            average_f = sum(map(cost_function, population)) / population_size
             average_list.append(average_f)
             print('Iteration:', t + 1, ', best solution:', f, ', average cost:', average_f, file=outfile)
             t += 1
@@ -193,10 +193,10 @@ def genetski():
               best_f, ', decoded best', decode_chromosome_function(best), file=outfile)
     sum_cost /= num_runs
     sum_iterations /= num_runs
-    print('Average cost: %.2f' % sum_cost, file=outfile)
+    print('Average cost: %.4f' % sum_cost, file=outfile)
     print('Average number of iterations: %.2f' % sum_iterations, file=outfile)
     print('Best solution: %s' % best_ever_sol, file=outfile)
-    print('Best cost: %.2f' % best_ever_f, file=outfile)
+    print('Best cost: %.4f' % best_ever_f, file=outfile)
     print('Decoded best solution: %f, %f' % decode_chromosome(best_ever_sol), file=outfile)
     draw_stats(all_best_lists, all_average_lists, generations_list, population_size)
 
