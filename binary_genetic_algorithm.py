@@ -131,7 +131,7 @@ def draw_stats(all_best_lists, all_average_lists, generations_list, pop_size):
     plt.savefig(filename)
 
 
-def genetski():
+def algorithm():
     sum_cost = 0
     sum_iterations = 0
     best_ever_sol = None
@@ -201,4 +201,4 @@ def genetski():
     draw_stats(all_best_lists, all_average_lists, generations_list, population_size)
 
 
-genetski()
+algorithm()
